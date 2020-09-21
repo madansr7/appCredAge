@@ -11,21 +11,22 @@ function GetPasswordCredentials
     )
 
     $cred = Get-AzureADApplicationPasswordCredential -ObjectId $app.ObjectId  | select KeyId, StartDate, EndDate
-    $credList = New-Object -TypeName psobject
-
+    $credList = @{}
 
     if ($cred -ne $null) 
     {
         foreach($item in $cred)
         {
-        #Write-Host $currentDate - $item.StartDate  
-        #$diff1 = New-TimeSpan -Start $item.StartDate -End $currentDate
-        #$diff2 = [DateTime]$currentDate-[DateTime]$item.StartDate
-        $diff = $currentDate.Subtract($item.StartDate)
-        #Write-Host $diff1.TotalDays
-        $foo= [System.Math]::Round($diff.TotalDays)
-        #Write-Host PwdAge: $foo days
-        $credList | Add-Member -MemberType NoteProperty -Name $item.keyId -Value $foo 
+            $diff = $currentDate.Subtract($item.StartDate)
+            $foo= [System.Math]::Round($diff.TotalDays)
+            $name = $item.keyId
+            $value = $foo
+
+            $credInfo = [pscustomobject]@{
+            name = $item.keyId
+            value = $foo
+            }
+            $credList.Add($name, $value)
         }
         
     }
@@ -53,7 +54,7 @@ function GetKeyCredentials
             $diff = $currentDate.Subtract($item.StartDate)
             $foo= [System.Math]::Round($diff.TotalDays)
             #Write-Host CertAge: $foo days
-        $credList | Add-Member -MemberType NoteProperty -Name $item.keyId -Value $foo 
+            $credList | Add-Member -MemberType NoteProperty -Name $item.keyId -Value $foo 
 
         }
     }
@@ -62,23 +63,29 @@ function GetKeyCredentials
 }
 
 $appList = Get-AzureADApplication | select ObjectId
+$appInfoList = @{}
+
 foreach($app in $appList)
 {
     $currentDate = Get-Date 
     #Write-Host $app.ObjectId
-    $certs = GetKeyCredentials -objId $app.ObjectId
+<#    $certs = GetKeyCredentials -objId $app.ObjectId
     $pwds = GetPasswordCredentials -objId $app.ObjectId
 
     $appInfo = New-Object -TypeName psobject
-    $appInfo | Add-Member -MemberType NoteProperty -Name certs -Value $certs
-    $appInfo | Add-Member -MemberType NoteProperty -Name pwds -Value $pwds
-    #[pscustomobjec]@{
+    $appInfo | Add-Member -MemberType NoteProperty -Name ObjectId -Value $app.ObjectId
+    $appInfo | Add-Member -MemberType Property  -Name certs -Value $certs
+    $appInfo | Add-Member -MemberType Property -Name pwds -Value $pwds #>
+    
+    $appInfo = [pscustomobject]@{
     #app = $app.ObjectId
-    #certs = GetKeyCredentials -objId $app.ObjectId
-    #pwds = GetPasswordCredentials -objId $app.ObjectId
-    #}
+    certs = GetKeyCredentials -objId $app.ObjectId
+    pwds = GetPasswordCredentials -objId $app.ObjectId
+    }
     
-    Write-Host $appInfo
     
+    $appInfoList.Add($app.ObjectId,$appInfo)
 }
+
+$appInfoList | ConvertTo-json
 

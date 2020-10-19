@@ -1,2 +1,2 @@
 # appCredAge
-get age of application credential
+PowerShell script to find out age of Azure AD application credentials. 

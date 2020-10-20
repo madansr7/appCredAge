@@ -1,24 +1,21 @@
 ﻿Import-Module AzureAD
 
 
-function GetPasswordCredentials
-{
+function GetPasswordCredentials {
     param
     (
         [string]
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         $objId
     )
 
     $cred = Get-AzureADApplicationPasswordCredential -ObjectId $app.ObjectId  | select KeyId, StartDate, EndDate
     $credList = @{}
 
-    if ($cred -ne $null) 
-    {
-        foreach($item in $cred)
-        {
+    if ($null -ne $cred) {
+        foreach ($item in $cred) {
             $diff = $currentDate.Subtract($item.StartDate)
-            $totalDay= [System.Math]::Round($diff.TotalDays)
+            $totalDay = [System.Math]::Round($diff.TotalDays)
             $credList.Add($item.keyId, $totalDay)
         }
         
@@ -26,23 +23,20 @@ function GetPasswordCredentials
     return $credList
 }
 
-function GetKeyCredentials
-{
+function GetKeyCredentials {
     param
     (
         [string]
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         $objId
     )
     $cred = Get-AzureADApplicationKeyCredential -ObjectId $app.ObjectId
     $credList = @{}
 
-    if ($cred -ne $null) 
-    {
-        foreach($item in $cred)
-        {
+    if ($cred -ne $null) {
+        foreach ($item in $cred) {
             $diff = $currentDate.Subtract($item.StartDate)
-            $totalDay= [System.Math]::Round($diff.TotalDays)
+            $totalDay = [System.Math]::Round($diff.TotalDays)
             $credList.Add($item.keyId, $totalDay)
         }
         
@@ -50,20 +44,18 @@ function GetKeyCredentials
     return $credList
 }
 
-function GetSessionInfo()
-{
-    try{
+function GetSessionInfo() {
+    try {
         $sessionInfo = Get-AzureADCurrentSessionInfo
     }
-    catch{
+    catch {
         Write-Warning -Message "Need to connect to Azure AD"
     }
     return $sessionInfo
 }
 
 
-function CredAge
-{
+function CredAge {
     <#
     EXAMPLE
     PS> CredAge -LogFile "C:\credLogs.txt"
@@ -72,111 +64,42 @@ function CredAge
     param
     (
         [string]
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         $LogFile
     )
 
     $currentSessionInfo = GetSessionInfo
 
 
-    if (!$currentSessionInfo)
-    {
+    if (!$currentSessionInfo) {
         Connect-AzureAD
     }  
     
      
-$appList = Get-AzureADApplication | select ObjectId
-$appInfoList = @{}
+    $appList = Get-AzureADApplication | select ObjectId
+    $appInfoList = @{}
 
 
-try
-{
+    try {
 
-    foreach($app in $appList)
-    {
-        $currentDate = Get-Date 
-        $appInfo = [pscustomobject]@{
-        certs = GetKeyCredentials -objId $app.ObjectId
-        pwds = GetPasswordCredentials -objId $app.ObjectId
-        }
+        foreach ($app in $appList) {
+            $currentDate = Get-Date 
+            $appInfo = [pscustomobject]@{
+                certs = GetKeyCredentials -objId $app.ObjectId
+                pwds  = GetPasswordCredentials -objId $app.ObjectId
+            }
     
-        $appInfoList.Add($app.ObjectId,$appInfo)
-    }
+            $appInfoList.Add($app.ObjectId, $appInfo)
+        }
 
-    $appInfoList | ConvertTo-json | Out-File -FilePath $LogFile
-}
-catch
-{
-    $errorMsg = "Could not process request" 
-    $errorMsg | Out-File -FilePath $LogFile
-}
+        $appInfoList | ConvertTo-json | Out-File -FilePath $LogFile
+    }
+    catch {
+        $errorMsg = "Could not process request" 
+        $errorMsg | Out-File -FilePath $LogFile
+    }
 }
 
 CredAge
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<#
-
-$appList = Get-AzureADApplication | select ObjectId
-$appInfoList = @{}
-
-foreach($app in $appList)
-{
-    $currentDate = Get-Date 
-    $appInfo = [pscustomobject]@{
-    certs = GetKeyCredentials -objId $app.ObjectId
-    pwds = GetPasswordCredentials -objId $app.ObjectId
-    }
-    
-    $appInfoList.Add($app.ObjectId,$appInfo)
-}
-
-$appInfoList | ConvertTo-json
-
-#>
